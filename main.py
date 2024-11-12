@@ -108,5 +108,18 @@ async def handle_2sv(bot, message):
     except Exception as e:
         await bot.send_message(chat_id=user_id, text=f"2𝖲𝖵 𝖫𝗈𝗀𝗂𝗇 𝖥𝖺𝗂𝗅𝖾𝖽 : {e}")
 
+# New start command
+@xemishra.on_message(filters.command("start"))
+async def start_command(bot, message):
+    user_id = message.from_user.id
+    welcome_text = (
+        "Welcome to the GroupBot!\n\n"
+        "This bot allows you to check the groups you own and more.\n\n"
+        "Use the following commands:\n"
+        "/check <session_string> - Check the groups you own\n"
+        "/pass <password> - Provide a 2SV password if required"
+    )
+    await bot.send_message(chat_id=user_id, text=welcome_text)
+
 xemishra.run()
 print("𝖦𝗋𝗈𝗎𝗉𝖡𝗈𝗍 𝖲𝗍𝖺𝗋𝗍𝖾𝖽 𝖲𝗎𝖼𝖼𝖾𝗌𝗌𝖿𝗎𝗅𝗅𝗒 !!")
