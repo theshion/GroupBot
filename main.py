@@ -29,7 +29,7 @@ async def get_owned_groups(user_client, user_id):
                         group_info["invite_link"] = f"𝖢𝗈𝗎𝗅𝖽 𝖭𝗈𝗍 𝖦𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝖨𝗇𝗏𝗂𝗋𝖾 𝖫𝗂𝗇𝗄 : {e}"
                     try:
                         async for message in user_client.get_chat_history(dialog.chat.id, limit=1, offset_id=0):
-                            group_info["creation_date"] = message.date.strftime("%Y-%m-%d")
+                            group_info["creation_date"] = message.date.strftime("%Y/%m/%d")
                             group_info["creation_time"] = message.date.strftime("%H:%M:%S")
                             break
                     except Exception as e:
