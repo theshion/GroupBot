@@ -104,14 +104,14 @@ def start_check(message):
     except Exception as e:
         bot.reply_to(message, f"Error: {str(e)}")
 
-# Function to check group info using the session string
+# Function to check groups using the session string (from your Pyrogram code)
 async def check_groups(message, session_data):
     try:
         # Use the saved session string to check group details
         client = Client("GroupCheckBot", api_id=api_id, api_hash=api_hash, session_string=session_data)
         await client.start()
 
-        # Example: Retrieve the user's chat groups (can be customized)
+        # Retrieve the user's chat groups (supergroups only)
         chats = await client.get_chats()  # Get the user's chat list
         group_names = [chat.title for chat in chats if chat.type == "supergroup"]  # Filter supergroups
 
