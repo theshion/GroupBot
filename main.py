@@ -4,9 +4,9 @@ from pyrogram import Client
 import asyncio
 
 # Bot Token and Pyrogram API details
-API_TOKEN = "YOUR_BOT_API_TOKEN"
-api_id = 'YOUR_API_ID'  # From https://my.telegram.org
-api_hash = 'YOUR_API_HASH'  # From https://my.telegram.org
+API_TOKEN = "7632024645:AAEtZ0I7551DPnqe1nzsf6nZs2NPxdEpFCA"
+api_id = '20787644'  # From https://my.telegram.org
+api_hash = '9dada820698e8a5fdd5e6cc78fac8567'  # From https://my.telegram.org
 
 bot = TeleBot(API_TOKEN)
 
