@@ -1,118 +1,112 @@
-import json
-from telebot import TeleBot, types
-from pyrogram import Client
-import asyncio
+from pyrogram import Client, enums, filters
+from pyrogram.errors import AuthKeyUnregistered, SessionPasswordNeeded
 
-# Bot Token and Pyrogram API details
-API_TOKEN = "7632024645:AAEtZ0I7551DPnqe1nzsf6nZs2NPxdEpFCA"
-api_id = '20787644'  # From https://my.telegram.org
-api_hash = '9dada820698e8a5fdd5e6cc78fac8567'  # From https://my.telegram.org
+bot_token = "7952485026:AAFdD01FxulJUukzrP-ha-t0ABXGqQdbkQk"
+api_id = 28102624
+api_hash = "4e03913f9a576278ed4dbcdf7073e1b0"
 
-bot = TeleBot(API_TOKEN)
+xemishra = Client("GroupBot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
-# Temporary session storage
-sessions = {}
+sessions_requiring_2sv = {}
 
-# Path to save session data (using JSON)
-SESSION_FILE_PATH = 'sessions.json'
-
-# Load saved sessions
-def load_sessions():
-    try:
-        with open(SESSION_FILE_PATH, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-# Save sessions
-def save_sessions(data):
-    with open(SESSION_FILE_PATH, 'w') as f:
-        json.dump(data, f)
-
-# Start command: Show options
-@bot.message_handler(commands=['start'])
-def start(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button1 = types.KeyboardButton("Add Session")
-    button2 = types.KeyboardButton("Start Check")
-    markup.add(button1, button2)
-    bot.send_message(message.chat.id, "Welcome! Please choose an option:", reply_markup=markup)
-
-# Handle 'Add Session' button
-@bot.message_handler(func=lambda message: message.text == "Add Session")
-def add_session(message):
-    user_id = message.from_user.id
-    bot.send_message(message.chat.id, "Please send your Pyrogram v2 session string.")
-    sessions[user_id] = "add_session"  # Mark user for session input
-
-# Handle session input from the user
-@bot.message_handler(func=lambda message: True)
-def handle_session_input(message):
-    user_id = message.from_user.id
-
-    if user_id in sessions and sessions[user_id] == "add_session":
-        session_data = message.text.strip()
-
-        # Check if session is valid
-        try:
-            asyncio.run(check_session(message, session_data))
-        except Exception as e:
-            bot.send_message(message.chat.id, f"Error: {str(e)}")
-        finally:
-            del sessions[user_id]  # Clear session input state
-
-# Check session validity and save it
-async def check_session(message, session_data):
-    client = Client("UserBot", api_id=api_id, api_hash=api_hash, session_string=session_data)
-    
-    try:
-        await client.start()  # Try starting the client with the session
-
-        # Validate by fetching user details
-        me = await client.get_me()
-        bot.send_message(message.chat.id, f"Session validated successfully! Welcome, {me.first_name}.")
-
-        # Save session to file
-        saved_sessions = load_sessions()
-        saved_sessions[str(message.from_user.id)] = session_data
-        save_sessions(saved_sessions)
-        await client.stop()
-    except Exception as e:
-        raise Exception(f"Invalid session or session expired. Error: {str(e)}")
-
-# Handle 'Start Check' button
-@bot.message_handler(func=lambda message: message.text == "Start Check")
-def start_check(message):
-    user_id = message.from_user.id
-
-    # Load saved session for user
-    saved_sessions = load_sessions()
-    session_data = saved_sessions.get(str(user_id))
-
-    if session_data:
-        asyncio.run(check_groups(message, session_data))
+async def get_owned_groups(user_client, user_id):
+    owned_groups = []
+    Me = await user_client.get_me()
+    async for dialog in user_client.get_dialogs():
+        if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
+            try:
+                user_s = await dialog.chat.get_member(Me.id)
+                if user_s.status == enums.ChatMemberStatus.OWNER:
+                    group_info = {
+                        "title": dialog.chat.title,
+                        "username": f"@{dialog.chat.username}" if dialog.chat.username else "No username",
+                        "members_count": dialog.chat.members_count if dialog.chat.members_count else "Unknown"
+                    }
+                    try:
+                        invite_link = await user_client.export_chat_invite_link(dialog.chat.id)
+                        group_info["invite_link"] = invite_link
+                    except Exception as e:
+                        group_info["invite_link"] = f"𝖢𝗈𝗎𝗅𝖽 𝖭𝗈𝗍 𝖦𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝖨𝗇𝗏𝗂𝗋𝖾 𝖫𝗂𝗇𝗄 : {e}"
+                    try:
+                        async for message in user_client.get_chat_history(dialog.chat.id, limit=1, offset_id=0):
+                            group_info["creation_date"] = message.date.strftime("%Y/%m/%d")
+                            group_info["creation_time"] = message.date.strftime("%H:%M:%S")
+                            break
+                    except Exception as e:
+                        group_info["creation_date"] = f"𝖢𝗈𝗎𝗅𝖽 𝖭𝗈𝗍 𝖣𝖾𝗍𝖾𝗋𝗆𝗂𝗇𝖾 𝖢𝗋𝖾𝖺𝗍𝗂𝗈𝗇 𝖣𝖺𝗍𝖾 𝖠𝗇𝖽 𝖳𝗂𝗆𝖾 : {e}"
+                    media_count = 0
+                    message_count = 0
+                    try:
+                        async for message in user_client.get_chat_history(dialog.chat.id):
+                            message_count += 1
+                            if message.media:
+                                media_count += 1
+                        group_info["media_count"] = media_count
+                        group_info["message_count"] = message_count
+                    except Exception as e:
+                        group_info["media_count"] = f"𝖢𝗈𝗎𝗅𝖽 𝖭𝗈𝗍 𝖢𝗈𝗎𝗇𝗍 𝖬𝖾𝖽𝗂𝖺 : {e}"
+                        group_info["message_count"] = f"𝖢𝗈𝗎𝗅𝖽 𝖭𝗈𝗍 𝖢𝗈𝗎𝗇𝗍 𝖬𝖾𝗌𝗌𝗀𝖺𝖾 : {e}"
+                    owned_groups.append(group_info)
+            except Exception as e:
+                print(f"𝖢𝗈𝗎𝗅𝖽 𝖭𝗈𝗍 𝖥𝖾𝗍𝖼𝗁 𝖬𝖾𝗆𝖻𝖾𝗋𝗌 𝖣𝖾𝗍𝖺𝗂𝗅𝗌 𝖥𝗈𝗋 {dialog.chat.title} : {e}")
+    if owned_groups:
+        response_message = "**𝖦𝗋𝗈𝗎𝗉 𝖨𝗇𝖿𝗈 :**\n\n"
+        for group in owned_groups:
+            response_message += (
+                f"• 𝖦𝗋𝗈𝗎𝗉 𝖳𝗂𝗍𝗅𝖾 : {group['title']}\n"
+                f"• 𝖴𝗌𝖾𝗋𝗇𝖺𝗆𝖾 : {group['username']}\n"
+                f"• 𝖬𝖾𝗆𝖻𝖾𝗋𝗌 𝖢𝗈𝗎𝗇𝗍 : {group['members_count']}\n"
+                f"• 𝖨𝗇𝗏𝗂𝗍𝖾 𝖫𝗂𝗇𝗄 : [Click Here]({group['invite_link']})\n"
+                f"• 𝖢𝗋𝖾𝖺𝗍𝗂𝗈𝗇 𝖣𝖺𝗍𝖾 : {group['creation_date']}\n"
+                f"• 𝖢𝗋𝖾𝖺𝗍𝗂𝗈𝗇 𝖳𝗂𝗆𝖾 : {group['creation_time']}\n"
+                f"• 𝖬𝖾𝖽𝗂𝖺 𝖢𝗈𝗎𝗇𝗍 : {group['media_count']}\n"
+                f"• 𝖬𝖾𝗌𝗌𝖺𝗀𝖾𝗌 𝖢𝗈𝗎𝗇𝗍 : {group['message_count']}\n\n"
+            )
     else:
-        bot.send_message(message.chat.id, "No valid session found. Please add a session first.")
+        response_message = "𝖴𝗌𝖾𝗋 𝖣𝗈𝖾𝗌 𝖭𝗈𝗍 𝖮𝗐𝗇 𝖠𝗇𝗒 𝖦𝗋𝗈𝗎𝗉𝗌."
+    await xemishra.send_message(chat_id=user_id, text=response_message, disable_web_page_preview=True)
 
-# Fetch and list the groups using the session
-async def check_groups(message, session_data):
-    client = Client("GroupBot", api_id=api_id, api_hash=api_hash, session_string=session_data)
-
+@xemishra.on_message(filters.command("check"))
+async def check_user_client(bot, message):
+    if len(message.command) < 2:
+        await message.reply("𝖯𝗅𝖾𝖺𝗌𝖾 𝖯𝗋𝗈𝗏𝗂𝖽𝖾 𝖠 𝖯𝗒𝗋𝗈𝗀𝗋𝖺𝗆 𝖵2 𝖲𝖾𝗌𝗌𝗂𝗈𝗇 𝖲𝗍𝗋𝗂𝗇𝗀 : /check <session string>")
+        return
+    session_string = message.command[1]
+    user_id = message.from_user.id
+    x = await xemishra.send_message(chat_id=user_id, text="𝖯𝗋𝗈𝖼𝖼𝖾𝗌𝗌𝗂𝗇𝗀...")
     try:
-        await client.start()
-        
-        # Fetch the user's chat list
-        chats = await client.get_chats()
-        groups = [chat.title for chat in chats if chat.type == "supergroup"]
-
-        if groups:
-            bot.send_message(message.chat.id, "You are part of the following groups:\n" + "\n".join(groups))
-        else:
-            bot.send_message(message.chat.id, "You are not part of any supergroups.")
-        
-        await client.stop()
+        user_client = Client(name="UserBot", api_id=api_id, api_hash=api_hash, session_string=session_string)
+        await user_client.start()
+        await get_owned_groups(user_client, user_id)
+        await x.delete()
+        await user_client.stop()
+    except SessionPasswordNeeded:
+        sessions_requiring_2sv[user_id] = session_string
+        await bot.send_message(chat_id=user_id, text="𝖳𝗁𝗂𝗌 𝖲𝖾𝗌𝗌𝗂𝗈𝗇 𝖱𝖾𝗊𝗎𝗂𝗋𝖾𝗌 𝖠 2𝖲𝖵 𝖯𝖺𝗌𝗌𝗐𝗈𝗋𝖽. 𝖯𝗅𝖾𝖺𝗌𝖾 𝖯𝗋𝗈𝗏𝗂𝖽𝖾 𝖨𝗍 𝖴𝗌𝗂𝗇𝗀 : /pass <password>")
+    except AuthKeyUnregistered:
+        await bot.send_message(chat_id=user_id, text="𝖳𝗁𝖾 𝖯𝗋𝗈𝗏𝗂𝖽𝖾𝖽 𝖲𝖾𝗌𝗌𝗂𝗈𝗇 𝖨𝗌 𝖤𝗑𝗉𝗂𝗋𝖾𝖽 𝖮𝗋 𝖨𝗇𝗏𝖺𝗅𝗂𝖽.")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Error fetching groups: {str(e)}")
+        await bot.send_message(chat_id=user_id, text=f"𝖠𝗇 𝖤𝗋𝗋𝗈𝗋 𝖮𝖼𝖼𝗎𝗋𝗋𝖾𝖽 : {e}")
 
-# Start the bot
-bot.polling(none_stop=True)
+@xemishra.on_message(filters.command("pass"))
+async def handle_2sv(bot, message):
+    user_id = message.from_user.id
+    if user_id not in sessions_requiring_2sv:
+        await message.reply("𝖭𝗈 𝖲𝖾𝗌𝗌𝗂𝗈𝗇 𝖨𝗌 𝖶𝖺𝗍𝗂𝗇𝗀 𝖥𝗈𝗋 𝖠 2𝖲𝖵 𝖯𝖺𝗌𝗌𝗐𝗈𝗋𝖽.")
+        return
+    if len(message.command) < 2:
+        await message.reply("𝖯𝗅𝖾𝖺𝗌𝖾 𝖯𝗋𝗈𝗏𝗂𝖽𝖾 𝖳𝗁𝖾 2𝖲𝖵 𝖯𝖺𝗌𝗌𝗐𝗈𝗋𝖽 𝖴𝗌𝗂𝗇𝗀 : /pass <password>")
+        return
+    password = message.command[1]
+    session_string = sessions_requiring_2sv[user_id]
+    try:
+        user_client = Client(name="UserBot", api_id=api_id, api_hash=api_hash, session_string=session_string)
+        await user_client.start(password=password)
+        await get_owned_groups(user_client, user_id)
+        await user_client.stop()
+        del sessions_requiring_2sv[user_id]
+    except Exception as e:
+        await bot.send_message(chat_id=user_id, text=f"2𝖲𝖵 𝖫𝗈𝗀𝗂𝗇 𝖥𝖺𝗂𝗅𝖾𝖽 : {e}")
+
+xemishra.run()
+print("𝖦𝗋𝗈𝗎𝗉𝖡𝗈𝗍 𝖲𝗍𝖺𝗋𝗍𝖾𝖽 𝖲𝗎𝖼𝖼𝖾𝗌𝗌𝖿𝗎𝗅𝗅𝗒 !!")
