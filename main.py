@@ -70,8 +70,10 @@ async def check_session(message, user_id, session_data):
         client = Client("UserBot", api_id=api_id, api_hash=api_hash, session_string=session_data)
         await client.start()
 
-        # Check if the user is authorized
-        if not await client.is_user_authorized():
+        # Check if the session is valid by using get_me()
+        try:
+            me = await client.get_me()  # This will raise an exception if the session is invalid
+        except Exception as e:
             raise Exception("Session expired ❌")
 
         # Save the session string if it's valid
