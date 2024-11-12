@@ -1,7 +1,7 @@
 from pyrogram import Client, enums, filters
 from pyrogram.errors import AuthKeyUnregistered, SessionPasswordNeeded
 
-bot_token = "7952485026:AAFdD01FxulJUukzrP-ha-t0ABXGqQdbkQk"
+bot_token = "8169679278:AAHlaj_X5vsfBhEbG-3-odjk2jBfVvTIOFM"
 api_id = 28102624
 api_hash = "4e03913f9a576278ed4dbcdf7073e1b0"
 
