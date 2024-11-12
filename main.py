@@ -58,6 +58,7 @@ async def get_owned_groups(user_client, user_id):
                 f"• 𝖬𝖾𝗆𝖻𝖾𝗋𝗌 𝖢𝗈𝗎𝗇𝗍 : {group['members_count']}\n"
                 f"• 𝖨𝗇𝗏𝗂𝗍𝖾 𝖫𝗂𝗇𝗄 : {group['invite_link']}\n"
                 f"• 𝖢𝗋𝖾𝖺𝗍𝗂𝗈𝗇 𝖣𝖺𝗍𝖾 : {group['creation_date']}\n"
+                f"• 𝖢𝗋𝖾𝖺𝗍𝗂𝗈𝗇 𝖳𝗂𝗆𝖾 : {group['creation_time']}\n"
                 f"• 𝖬𝖾𝖽𝗂𝖺 𝖢𝗈𝗎𝗇𝗍 : {group['media_count']}\n"
                 f"• 𝖬𝖾𝗌𝗌𝖺𝗀𝖾𝗌 𝖢𝗈𝗎𝗇𝗍 : {group['message_count']}\n\n"
             )
