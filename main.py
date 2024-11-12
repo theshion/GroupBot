@@ -64,7 +64,7 @@ async def get_owned_groups(user_client, user_id):
             )
     else:
         response_message = "𝖴𝗌𝖾𝗋 𝖣𝗈𝖾𝗌 𝖭𝗈𝗍 𝖮𝗐𝗇 𝖠𝗇𝗒 𝖦𝗋𝗈𝗎𝗉𝗌."
-    await xemishra.send_message(chat_id=user_id, text=response_message)
+    await xemishra.send_message(chat_id=user_id, text=response_message, disable_web_page_preview=True)
 
 @xemishra.on_message(filters.command("check"))
 async def check_user_client(bot, message):
