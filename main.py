@@ -1,9 +1,9 @@
+import json
 from telebot import TeleBot, types
 import asyncio
 from pyrogram import Client
 from pyrogram.errors import SessionPasswordNeeded
 from pyrogram.types import Message
-import data  # Assuming 'data' is your custom data storage module
 
 # Define your bot token
 API_TOKEN = "7632024645:AAEtZ0I7551DPnqe1nzsf6nZs2NPxdEpFCA"
@@ -15,6 +15,22 @@ bot = TeleBot(API_TOKEN)
 # Store user session states temporarily
 sessions = {}  # Will store user session actions
 check_with_sessions = {}  # Will store validated sessions for users
+
+# Path to save session data (using a JSON file)
+SESSION_FILE_PATH = 'sessions.json'
+
+# Load saved sessions from the JSON file (if any)
+def load_sessions():
+    try:
+        with open(SESSION_FILE_PATH, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+# Save sessions to the JSON file
+def save_sessions(data):
+    with open(SESSION_FILE_PATH, 'w') as f:
+        json.dump(data, f)
 
 # Handle start command and show the buttons
 @bot.message_handler(commands=['start'])
@@ -59,7 +75,9 @@ async def check_session(message, user_id, session_data):
             raise Exception("Session expired ❌")
 
         # Save the session string if it's valid
-        data.set(f"session_{user_id}", session_data)  # Save session string (assuming you have a storage system like 'data' module)
+        saved_sessions = load_sessions()
+        saved_sessions[f"session_{user_id}"] = session_data
+        save_sessions(saved_sessions)  # Save updated sessions to file
         check_with_sessions[user_id] = session_data  # Store the session for later use
         bot.reply_to(message, "Session saved ✅")
 
@@ -73,7 +91,8 @@ def start_check(message):
     user_id = message.from_user.id
     try:
         # Get the saved session for the user
-        session_data = check_with_sessions.get(user_id)
+        saved_sessions = load_sessions()
+        session_data = saved_sessions.get(f"session_{user_id}")
         if not session_data:
             bot.reply_to(message, "No session found! Please add a valid session using 'Add Session' button.")
             return
